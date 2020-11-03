@@ -85,18 +85,79 @@ def papers():
             'start_count':data[9],
             'source':data[10],
         })
-    
+    db.close()
     # return sql
     return json.dumps(result,indent=4)
-
-@app.route('/reference/<id>',methods = ['GET'])
+# 测试id d4a88a01-36e2-4c41-b0b8-43de835244c8
+@app.route('/refs/<id>',methods = ['GET'])
 def reference(id):
     db = getDb()
     cursor = db.cursor()
-    cursor.execute("SELECT * FROM clusters limit 10")
-    data = cursor.fetchone()
-    # print(data)
-    return 'Hello %s!' % data[0]
+    sql = """
+    SELECT 
+        C.cid,
+        C.cdoi,
+        C.ctitle,
+        C.cauth,
+        C.cyear,
+        C.cvenue,
+        C.cabstract,
+        C.nread,
+        COUNT(DISTINCT D.id),
+        F.starNum,
+        F.githubUrl
+    FROM 
+        clusters as A
+    INNER JOIN
+        refs as B
+    ON
+        A.cid = B.cid
+    INNER JOIN
+        clusters as C
+    ON
+        B.selfcid = C.cid
+    LEFT JOIN
+        refs as D
+    ON
+        C.cid = D.cid
+    LEFT JOIN
+        papers as E
+    ON 
+        C.cid = E.cid 
+    LEFT JOIN 
+        github_info as F
+    ON 
+        E.id = F.paperID
+    WHERE 
+        A.cid = '{id}'
+    GROUP BY
+		C.cid
+    """.format(id=id)
+    cursor.execute(sql)
+    listData = cursor.fetchall()
+    result = []
+    for data in listData:
+        try:
+            authData = demjson.decode(data[3])
+            authStr = ",".join([x.get("name","") for x in authData])
+        except Exception:
+            authData = []
+            authStr = None
+        result.append({
+            'id':data[0],
+            'doi':data[1],
+            'title':data[2],
+            'authStr':authStr,
+            'year':data[4],
+            'venue':data[5],
+            'abstract':data[6],
+            'auth':demjson.encode(authData),
+            'view_count':data[7],
+            'start_count':data[9],
+            'source':data[10],
+        })
+    db.close()
+    return json.dumps(result,indent=4)
 
 if __name__ == '__main__':
     app.run('0.0.0.0',8686,True)
