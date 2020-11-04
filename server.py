@@ -20,8 +20,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def hello():
-    name = request.args.get("name", "World")
-    return f'Hello, {escape(name)}!'
+    return f'服务启动正常'
 
 @app.route('/papers',methods = ['POST'])
 def papers():
@@ -29,6 +28,7 @@ def papers():
     
     if paperIds.strip()=="":
         return '[]'
+    paperIds =  ",".join(["'"+x+"'" for x in paperIds.split(",")]) 
     db = getDb()
     cursor = db.cursor()
     sql = """
@@ -63,6 +63,10 @@ def papers():
     GROUP BY 
         A.cid""".format(paperIds=paperIds)
     cursor.execute(sql)
+    # try:
+    #     cursor.execute(sql)
+    # except pymysql.err.ProgrammingError:
+    #     abort(400)
     listData = cursor.fetchall()
     result = []
     for data in listData:
@@ -160,6 +164,6 @@ def reference(id):
     return json.dumps(result,indent=4)
 
 if __name__ == '__main__':
-    app.run('0.0.0.0',8686,True)
-    # server = pywsgi.WSGIServer(('0.0.0.0',8686), app)
-    # server.serve_forever()
+    # app.run('0.0.0.0',8686,True)
+    server = pywsgi.WSGIServer(('0.0.0.0',8686), app)
+    server.serve_forever()
