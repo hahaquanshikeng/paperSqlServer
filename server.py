@@ -5,7 +5,10 @@ import json
 import demjson
 # 打开数据库连接
 def getDb():
-    return pymysql.connect("210.30.97.164","papers","issme316","papers" )
+    # 学校
+    # return pymysql.connect("210.30.97.164","papers","issme316","papers" )
+    # 公司
+    return pymysql.connect("127.0.0.1","root","issme316","papers" )
  
 # # 使用 cursor() 方法创建一个游标对象 cursor
 # cursor = db.cursor()
