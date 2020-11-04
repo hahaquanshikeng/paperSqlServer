@@ -7,8 +7,8 @@ import demjson
 def getDb():
     # 学校
     # return pymysql.connect("210.30.97.164","papers","issme316","papers" )
-    # 公司
-    return pymysql.connect("127.0.0.1","root","issme316","papers" )
+    # 容器内
+    return pymysql.connect("172.17.0.1","root","issme316","papers" )
  
 # # 使用 cursor() 方法创建一个游标对象 cursor
 # cursor = db.cursor()
