@@ -11,6 +11,4 @@ WORKDIR /var/www/paperSqlServer
 # 默认暴露端口
 EXPOSE 8686
 # 容器启动后自动执行命令
-CMD git fetch
-CMD git pull
 CMD python ./server.py
