@@ -89,7 +89,7 @@ def papers():
             'abstract':data[6],
             'auth':demjson.encode(authData),
             'view_count':data[7],
-            'start_count':data[9],
+            'star_count':data[9],
             'source':data[10],
         })
     db.close()
@@ -160,7 +160,7 @@ def reference(id):
             'abstract':data[6],
             'auth':demjson.encode(authData),
             'view_count':data[7],
-            'start_count':data[9],
+            'star_count':data[9],
             'source':data[10],
         })
     db.close()
