@@ -3,10 +3,89 @@ from gevent import pywsgi
 import pymysql
 import json
 import demjson
+import requests
+import pika
+import configparser
+from  datetime import datetime
+import _thread
+import requests
+
+def getPikaConfig():
+    config = configparser.ConfigParser()
+    config.read("config.ini")
+    return {
+            'host': config['PIKA']['pika_host'],
+            'port': config['PIKA']['pika_port'],
+            'user': config['PIKA']['pika_user'],
+            'password': config['PIKA']['pika_password']
+        }
+def getPhpConfig():
+    config = configparser.ConfigParser()
+    config.read("config.ini")
+    return {
+            'host': config['PHP']['php_host'],
+        }
+
+
+# 消息入队
+def sendMsg(queue='rel_to_do',*,userId,paperId=None,paperDoi=None,paperArxiv=None):
+    lv_config = getPikaConfig()
+    credentials = pika.PlainCredentials(lv_config['user'], lv_config['password'])
+    connection = pika.BlockingConnection(
+        pika.ConnectionParameters(host=lv_config['host'], port=lv_config['port'], virtual_host='/', credentials=credentials)
+    )
+    channel = connection.channel()
+
+    channel.queue_declare(queue=queue, durable=True)
+    msg = {
+        "start_datetime":datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+    if userId:
+       msg["user_id"] = userId
+    if paperId:
+        msg["paper_id"] = paperId
+    if paperDoi:
+        msg["paper_doi"] = paperDoi
+    if paperArxiv:
+        msg["paper_arxiv_id"] = paperArxiv
+    channel.basic_publish(exchange='', routing_key=queue, body=json.dumps(msg))
+    connection.close()
+
+# 监听消息队列 参数:  回调函数,队列名称
+def msgListener(callback,queue="rel_done"):
+    lv_config = getPikaConfig()
+    credentials = pika.PlainCredentials(lv_config['user'], lv_config['password'])
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host=lv_config['host'], port=lv_config['port'], virtual_host='/', credentials=credentials))
+    channel = connection.channel()
+    channel.queue_declare(queue = queue,durable=True)
+    channel.basic_qos(prefetch_count=1)
+    # callback(ch, method, properties, body)
+    channel.basic_consume(queue=queue, on_message_callback=callback, auto_ack=True)
+
+    print('Waiting for messages. To exit press CTRL+C')
+
+    channel.start_consuming()
+
+# 关联文献生成成功回调
+def onRefGenerate(ch, method, properties, body):
+    phpConfig = getPhpConfig()
+    data = json.loads(body)
+    paperId = data["paper_id"]
+    userId = data["user_id"]
+    #向php中发消息
+    response =  requests.get(
+        phpConfig['host']+'/addons/ask/detail/notice?user_id={}&paper_id={}'.format(userId,paperId),
+        timeout=(20,20)
+    )
+    if response.status_code != 200:
+        print("php服务出错paperId={} userId={}".format(userId,paperId))
+
+
+
 # 打开数据库连接
 def getDb():
     # 学校
-    return pymysql.connect("210.30.97.164","papers","issme316","papers" )
+    return pymysql.connect("210.30.97.163","root","123456","matrix" )
     # 容器内
     #return pymysql.connect("172.17.0.1","root","Issme316","papers" )
  
@@ -45,7 +124,7 @@ def papers():
         A.cabstract,
         A.nread,
         COUNT(DISTINCT D.id),
-        C.starNum,
+        C.startNum,
         C.githubUrl 
     FROM 
         clusters as A 
@@ -166,8 +245,32 @@ def reference(id):
     db.close()
     return json.dumps(result,indent=4)
 
+@app.route('/rel_paper_state/<id>/user/<userId>',methods = ['GET'])
+def relPaperState(id,userId):
+    db = getDb()
+    cursor = db.cursor()
+    relPaperCount = cursor.execute("SELECT count(*) FROM clusterRelevance WHERE cid = %s", (id))
+    db.close()
+
+    # state: 1存在 2不存在
+    if relPaperCount > 0:
+        return json.dumps({
+            "state":1
+        },indent=4)
+    else:
+        sendMsg(userId=userId,paperId=id)
+        return json.dumps({
+            "state":2
+        },indent=4)
+
+@app.route('/rel_paper_info/<id>',methods = ['GET'])
+def relPaperInfo(id):
+    sendMsg('rel_done',paperId='08365c1f-0aef-43f1-8307-4af54f2c2b3b',userId=1)
+    return "123"
+
 
 if __name__ == '__main__':
     # app.run('0.0.0.0',8686,True)
+    _thread.start_new_thread(msgListener, (onRefGenerate,'rel_done',) )
     server = pywsgi.WSGIServer(('0.0.0.0',8686), app)
     server.serve_forever()
