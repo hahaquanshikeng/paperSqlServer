@@ -124,7 +124,7 @@ def papers():
         A.cabstract,
         A.nread,
         COUNT(DISTINCT D.id),
-        C.startNum,
+        C.starNum,
         C.githubUrl 
     FROM 
         clusters as A 
@@ -265,8 +265,65 @@ def relPaperState(id,userId):
 
 @app.route('/rel_paper_info/<id>',methods = ['GET'])
 def relPaperInfo(id):
-    sendMsg('rel_done',paperId='08365c1f-0aef-43f1-8307-4af54f2c2b3b',userId=1)
-    return "123"
+    db = getDb()
+    cursor = db.cursor()
+    sql = """
+    SELECT 
+        A.cid,
+        A.cdoi,
+        A.ctitle,
+        A.cauth,
+        A.cyear,
+        A.cvenue,
+        A.cabstract,
+        A.nread,
+        COUNT(DISTINCT D.id),
+        C.starNum,
+        C.githubUrl 
+    FROM 
+        clusters as A 
+    LEFT JOIN 
+        papers as B 
+    ON 
+        A.cid = B.cid 
+    LEFT JOIN 
+        github_info as C 
+    ON 
+        B.id = C.paperID
+    LEFT JOIN
+        refs as D
+    ON
+        A.cid = D.cid
+    WHERE 
+        A.cid in (SELECT relCid FROM clusterRelevance WHERE cid = {id})
+    GROUP BY 
+        A.cid
+    """.format(id=id)
+    cursor.execute(sql)
+    listData = cursor.fetchall()
+    result = []
+    for data in listData:
+        try:
+            authData = demjson.decode(data[3])
+            authStr = ",".join([x.get("name","") for x in authData])
+        except Exception:
+            authData = []
+            authStr = None
+        result.append({
+            'id':data[0],
+            'doi':data[1],
+            'title':data[2],
+            'authStr':authStr,
+            'year':data[4],
+            'venue':data[5],
+            'abstract':data[6],
+            'auth':demjson.encode(authData),
+            'view_count':data[7],
+            'star_count':data[9],
+            'source':data[10],
+        })
+    db.close()
+    return json.dumps(result,indent=4)
 
 
 if __name__ == '__main__':
