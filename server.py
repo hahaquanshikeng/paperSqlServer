@@ -249,9 +249,9 @@ def reference(id):
 def relPaperState(id,userId):
     db = getDb()
     cursor = db.cursor()
-    relPaperCount = cursor.execute("SELECT count(*) FROM clusterRelevance WHERE cid = %s", (id))
+    cursor.execute("SELECT count(*) FROM clusterRelevance WHERE cid = %s", (id))
     db.close()
-
+    relPaperCount = cursor.fetchone()[0]
     # state: 1存在 2不存在
     if relPaperCount > 0:
         return json.dumps({
