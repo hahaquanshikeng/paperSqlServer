@@ -3,10 +3,10 @@ from gevent import pywsgi
 import pymysql
 import json
 import demjson
-import requests
 import pika
 import configparser
 from  datetime import datetime
+import time
 import _thread
 import requests
 
@@ -325,6 +325,27 @@ def relPaperInfo(id):
     db.close()
     return json.dumps(result,indent=4)
 
+@app.route('/full_text_search',methods = ['POST'])
+def fullTextSearch():
+    phpConfig = getPhpConfig()
+    actionList = request.form['actionList']
+    #转发请求至php
+    try:
+        response = requests.post(
+            phpConfig['host']+'/addons/xunsearch/paper_full_text_search',data={
+                "actionList":actionList
+            },timeout=(20,20)
+        )
+    except Exception as e:
+        print("php服务出错 url: /addons/xunsearch/paper_full_text_search msg:",e)
+        return json.dumps({
+            "code":500,
+            "msg":"php 服务器出错",
+            "time":int(time.time()),
+            "data":None
+        },indent=4)
+    # 直接转发php响应
+    return response.content
 
 if __name__ == '__main__':
     # app.run('0.0.0.0',8686,True)
