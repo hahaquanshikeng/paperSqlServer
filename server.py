@@ -328,21 +328,23 @@ def relPaperInfo(id):
 @app.route('/full_text_search',methods = ['POST'])
 def fullTextSearch():
     phpConfig = getPhpConfig()
-    actionList = request.form['actionList']
+    actionList = json.loads(request.form['actionList'])
+    for actionDict in actionList:
+        authData = demjson.decode(actionDict["data"]["cauth"]) if actionDict["data"]["cauth"] != None else None
+        actionDict["data"]["cauthStr"] = ",".join([x.get("name","") for x in authData])
     #转发请求至php
     try:
         response = requests.post(
             phpConfig['host']+'/addons/xunsearch/paper_full_text_search',data={
-                "actionList":actionList
+                "actionList":json.dumps(actionList)
             },timeout=(20,20)
         )
     except Exception as e:
-        print("php服务出错 url: /addons/xunsearch/paper_full_text_search msg:",e)
         return json.dumps({
             "code":500,
             "msg":"php 服务器出错",
-            "time":int(time.time()),
-            "data":None
+            "time":str(int(time.time())),
+            "data":str(e)
         },indent=4)
     # 直接转发php响应
     return response.content
