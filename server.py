@@ -178,9 +178,19 @@ def getDb():
 
 app = Flask(__name__)
 
-@app.route('/gugu')
+@app.route('/lulu')
+def lulu():
+    requests.post(
+    "http://192.168.193.141:8686"+'/gugu',data={
+        "actionList":123
+    })
+    return 123
+
+@app.route('/gugu',methods = ['POST'])
 def gugu():
-    return onRefGenerate()
+    data = json.loads(list(request.form)[0])
+    print(data)
+    return 0
 
 @app.route('/')
 def hello():
