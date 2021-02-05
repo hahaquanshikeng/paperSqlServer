@@ -581,7 +581,6 @@ def rel_paper_task(userId):
 # '[{"name":"Black Li"}]', 'view_count': 0, 'ref_count': 0, 'start_count': 0, 'question_count': 0, 'article_count': 0, 
 # 'explain_count': 0, 'source': '', 'pid': '', 'lid': 'b7deda2eaa44e88820e6c240ca9c97ee', 'arxivId': None}
     paper = json.loads(list(request.form)[0])
-    print(paper)
     try:
         sendMsgFullPaperData(userId=userId,paper=paper)
     except Exception:
