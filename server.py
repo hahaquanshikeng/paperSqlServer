@@ -178,19 +178,18 @@ def getDb():
 
 app = Flask(__name__)
 
-@app.route('/lulu')
-def lulu():
-    requests.post(
-    "http://192.168.193.141:8686"+'/gugu',data={
-        "actionList":123
-    })
-    return 123
+@app.route('/debugtest')
+def debugtest():
+    return str(debugSend({"msg":"debuglog测试数据"}))
 
-@app.route('/gugu',methods = ['POST'])
-def gugu():
-    data = json.loads(list(request.form)[0])
+def debugSend(data):
+    return requests.post("http://192.168.193.141:8686"+'/debuglog',data=data)
+
+@app.route('/debuglog',methods = ['POST'])
+def debuglog():
+    data = dict(request.form)
     print(data)
-    return 0
+    return "0"
 
 @app.route('/')
 def hello():
