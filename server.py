@@ -27,7 +27,7 @@ def getPhpConfig():
         }
 
 
-# 消息入队
+# 消息入队 仅paperId
 def sendMsg(queue='rel_to_do',*,userId,paperId=None,paperDoi=None,paperArxiv=None):
     lv_config = getPikaConfig()
     credentials = pika.PlainCredentials(lv_config['user'], lv_config['password'])
@@ -51,6 +51,27 @@ def sendMsg(queue='rel_to_do',*,userId,paperId=None,paperDoi=None,paperArxiv=Non
     channel.basic_publish(exchange='', routing_key=queue, body=json.dumps(msg))
     connection.close()
 
+# 消息入队 传入完整paper数据
+def sendMsgFullPaperData(queue='rel_to_do',*,userId,paper=None):
+    lv_config = getPikaConfig()
+    credentials = pika.PlainCredentials(lv_config['user'], lv_config['password'])
+    connection = pika.BlockingConnection(
+        pika.ConnectionParameters(host=lv_config['host'], port=lv_config['port'], virtual_host='/', credentials=credentials)
+    )
+    channel = connection.channel()
+
+    channel.queue_declare(queue=queue, durable=True)
+    msg = {
+        "start_datetime":datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+    if userId:
+       msg["user_id"] = userId
+    if paper:
+        msg["paper"] = paper
+    channel.basic_publish(exchange='', routing_key=queue, body=json.dumps(msg))
+    connection.close()
+
+
 # 监听消息队列 参数:  回调函数,队列名称
 def msgListener(callback,queue="rel_done"):
     lv_config = getPikaConfig()
@@ -68,17 +89,74 @@ def msgListener(callback,queue="rel_done"):
 
 # 关联文献生成成功回调
 def onRefGenerate(ch, method, properties, body):
+# def onRefGenerate():
     phpConfig = getPhpConfig()
+    # body = '''
+    #         {
+    #         "status": 0,
+    #         "message": "success/error message",
+    #         "timestamp": "202101261135",
+    #         "paperId": "000df741-8a61-4e0e-865d-fc3e72375dce",
+    #         "lid":"000df741-8a61-4e0e-865d-fc3e72375dce",
+    #         "userId": "9",
+    #         "data": [
+    #             {
+    #                 "id": "12345",
+    #                 "doi": "12345",
+    #                 "title": "hello",
+    #                 "authStr": "Aa,Bb,Cc",
+    #                 "year": 2020,
+    #                 "venue": "venue sample",
+    #                 "abstract": "abstract sample",
+    #                 "auth": "auth sample",
+    #                 "view_count": 20,
+    #                 "star_count": 30,
+    #                 "source": "source sample"
+    #             },
+    #             {
+    #                 "id": "12345",
+    #                 "doi": "12345",
+    #                 "title": "hello",
+    #                 "authStr": "Aa,Bb,Cc",
+    #                 "year": 2020,
+    #                 "venue": "venue sample",
+    #                 "abstract": "abstract sample",
+    #                 "auth": "auth sample",
+    #                 "view_count": 20,
+    #                 "star_count": 30,
+    #                 "source": "source sample"
+    #             }
+    #         ]
+    #     }
+    # '''
     data = json.loads(body)
-    paperId = data["paper_id"]
-    userId = data["user_id"]
-    #向php中发消息
-    response =  requests.get(
-        phpConfig['host']+'/addons/ask/detail/notice?user_id={}&paper_id={}'.format(userId,paperId),
-        timeout=(20,20)
+    state = data["status"]
+    if state!=0 :
+        # 如果生成失败
+        return
+    paperId = data["paperId"]
+    userId = data["userId"]
+    phpCid = data["lid"]
+    relData = data["data"]
+
+    # #向php中发消息(不包含生成的文献信息)
+    # response =  requests.get(
+    #     phpConfig['host']+'/addons/ask/detail/notice?user_id={}&paper_id={}'.format(userId,paperId),
+    #     timeout=(20,20)
+    # )
+
+    #向php中发消息(包含生成的文献信息)
+    response =  requests.post(
+        phpConfig['host']+'/addons/ask/detail/notice?user_id={}&paper_id={}&lid={}'.format(userId,paperId,phpCid),
+        None,
+        relData,
+        headers = {'Content-Type': 'application/json', 'Accept':'application/json'},
+        timeout = (20,20)
     )
+
     if response.status_code != 200:
         print("php服务出错paperId={} userId={}".format(userId,paperId))
+
 
 
 
@@ -99,6 +177,10 @@ def getDb():
 # data = cursor.fetchone()
 
 app = Flask(__name__)
+
+@app.route('/gugu')
+def gugu():
+    return onRefGenerate()
 
 @app.route('/')
 def hello():
@@ -492,6 +574,20 @@ def fullTextSearch():
         },indent=4)
     # 直接转发php响应
     return response.content
+
+@app.route('/rel_paper_task/user/<userId>',methods = ['POST'])
+def rel_paper_task(userId):
+# {'id': 20, 'doi': None, 'title': '这是一个标题', 'authStr': '', 'year': 1998, 'venue': '', 'abstract': None, 'auth': 
+# '[{"name":"Black Li"}]', 'view_count': 0, 'ref_count': 0, 'start_count': 0, 'question_count': 0, 'article_count': 0, 
+# 'explain_count': 0, 'source': '', 'pid': '', 'lid': 'b7deda2eaa44e88820e6c240ca9c97ee', 'arxivId': None}
+    paper = json.loads(list(request.form)[0])
+    sendMsgFullPaperData(userId=userId,paper=paper)
+    return json.dumps({
+            "state":1
+    },indent=4)
+
+
+
 
 if __name__ == '__main__':
     # app.run('0.0.0.0',8686,True)

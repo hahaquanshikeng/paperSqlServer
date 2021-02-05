@@ -1,0 +1,36 @@
+http://ask.phpdev.net/xunsearch/papers
+params:
+    order : cyear_desc|cyear_asc  排序
+    q: keyword1+keyword2   查询字符串用+分词
+    fulltext: 0|1  1全文搜索 0标题搜索
+    page: 分页页码首页可不传
+    pagesize: 1|2|3|4  1每页5条 2每页10条 3每页20条 4每页50条 可不传 不传则使用后台设置的分页大小
+    synonyms: 作废 三方接口不支持
+    fuzzy   : 作废 三方接口不支持
+
+result:
+
+    成功：
+        'q'                  => 查询字符串
+        'code'               => 0,
+        'message'            => '请求成功'
+        'page'               => 页码
+        'pagesize'           => 每页条数
+        'pages'              => 总页数
+        'count'              => 总结果数
+        'hot'                => 查询热词(由后台设置)
+        'data'               => 结果数组
+
+    失败:
+        'q'                  => 查询字符串
+        'code'               => 1
+        'message'            => '请求失败'
+        'page'               => 页码
+        'pagesize'           => 每页条数
+        'pages'              => 0
+        'count'              => 0
+        'hot'                => 查询热词(由后台设置)
+        'data'               => null
+        'proxy_code'        => 三方返回的状态码
+
+例: http://ask.phpdev.net/xunsearch/papers?order=cyear_desc&q=fasd&fulltext=0&pagesize=2&page=2
