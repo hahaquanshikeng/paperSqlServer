@@ -178,12 +178,10 @@ def getDb():
 
 app = Flask(__name__)
 
-@app.route('/debugtest')
-def debugtest():
-    return str(debugSend({"msg":"debuglog测试数据"}))
-
 def debugSend(data):
-    return requests.post("http://192.168.193.141:8686"+'/debuglog',data=data)
+    config = configparser.ConfigParser()
+    config.read("config.ini")
+    return requests.post(config['DEBUG']['debug_host']+'/debuglog',data=data)
 
 @app.route('/debuglog',methods = ['POST'])
 def debuglog():
