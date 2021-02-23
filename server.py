@@ -131,13 +131,24 @@ def onRefGenerate(ch, method, properties, body):
     # '''
     data = json.loads(body)
     state = data["status"]
-    if state!=0 :
-        # 如果生成失败
-        return
     paperId = data["paperId"]
     userId = data["userId"]
     phpCid = data["lid"]
+    if state!=0 :
+        # 如果生成失败
+        state = 1
+        response =  requests.post(
+            phpConfig['host']+'/addons/ask/detail/fail_notice?user_id={}&paper_id={}&lid={}&state={}'.format(userId,paperId,phpCid,state),
+            None,
+            {"message":data["message"]},
+            headers = {'Content-Type': 'application/json', 'Accept':'application/json'},
+            timeout = (20,20)
+        )
+        if response.status_code != 200:
+            print("php服务出错paperId={} userId={}".format(userId,paperId))
+        return
     relData = data["data"]
+
 
     # #向php中发消息(不包含生成的文献信息)
     # response =  requests.get(
@@ -147,7 +158,7 @@ def onRefGenerate(ch, method, properties, body):
 
     #向php中发消息(包含生成的文献信息)
     response =  requests.post(
-        phpConfig['host']+'/addons/ask/detail/notice?user_id={}&paper_id={}&lid={}'.format(userId,paperId,phpCid),
+        phpConfig['host']+'/addons/ask/detail/notice?user_id={}&paper_id={}&lid={}&state={}'.format(userId,paperId,phpCid,state),
         None,
         relData,
         headers = {'Content-Type': 'application/json', 'Accept':'application/json'},
