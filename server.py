@@ -138,7 +138,7 @@ def onRefGenerate(ch, method, properties, body):
         # 如果生成失败
         state = 1
         response =  requests.post(
-            phpConfig['host']+'/addons/ask/detail/fail_notice?user_id={}&paper_id={}&lid={}&state={}'.format(userId,paperId,phpCid,state),
+            phpConfig['host']+'/addons/ask/detail/notice?user_id={}&paper_id={}&lid={}&state={}'.format(userId,paperId,phpCid,state),
             None,
             {"message":data["message"]},
             headers = {'Content-Type': 'application/json', 'Accept':'application/json'},
