@@ -32,7 +32,7 @@ def sendMsg(queue='rel_to_do',*,userId,paperId=None,paperDoi=None,paperArxiv=Non
     lv_config = getPikaConfig()
     credentials = pika.PlainCredentials(lv_config['user'], lv_config['password'])
     connection = pika.BlockingConnection(
-        pika.ConnectionParameters(host=lv_config['host'], port=lv_config['port'], virtual_host='/', credentials=credentials)
+        pika.ConnectionParameters(host=lv_config['host'], port=lv_config['port'], virtual_host='/h1', credentials=credentials)
     )
     channel = connection.channel()
 
@@ -56,7 +56,7 @@ def sendMsgFullPaperData(queue='rel_to_do',*,userId,paper=None):
     lv_config = getPikaConfig()
     credentials = pika.PlainCredentials(lv_config['user'], lv_config['password'])
     connection = pika.BlockingConnection(
-        pika.ConnectionParameters(host=lv_config['host'], port=lv_config['port'], virtual_host='/', credentials=credentials)
+        pika.ConnectionParameters(host=lv_config['host'], port=lv_config['port'], virtual_host='/h1', credentials=credentials)
     )
     channel = connection.channel()
 
@@ -70,13 +70,18 @@ def sendMsgFullPaperData(queue='rel_to_do',*,userId,paper=None):
         msg["paper"] = paper
     channel.basic_publish(exchange='', routing_key=queue, body=json.dumps(msg))
     connection.close()
+    try:
+        if paper:
+            print("关联文献生成任务lid={},uid={}".format(paper["lid"],userId))
+    except Exception:
+        pass
 
 
 # 监听消息队列 参数:  回调函数,队列名称
 def msgListener(callback,queue="rel_done"):
     lv_config = getPikaConfig()
     credentials = pika.PlainCredentials(lv_config['user'], lv_config['password'])
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host=lv_config['host'], port=lv_config['port'], virtual_host='/', credentials=credentials))
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host=lv_config['host'], port=lv_config['port'], virtual_host='/h1', credentials=credentials))
     channel = connection.channel()
     channel.queue_declare(queue = queue,durable=True)
     channel.basic_qos(prefetch_count=1)
@@ -134,6 +139,8 @@ def onRefGenerate(ch, method, properties, body):
     paperId = data["paperId"]
     userId = data["userId"]
     phpCid = data["lid"]
+    print("关联文献已生成lid:{},pid:{},uid:{},state:{}".format(phpCid,paperId,userId,state))
+
     if state!=0 :
         # 如果生成失败
         state = 1
