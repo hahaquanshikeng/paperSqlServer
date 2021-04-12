@@ -192,9 +192,7 @@ def onRefGenerate(ch, method, properties, body):
     paperId = data["paperId"]
     userId = data["userId"]
     phpCid = data["lid"]
-    references = data["references"]
-    abstract = data["abstract"]
-    print("关联文献已生成lid:{},pid:{},uid:{},state:{}".format(phpCid,paperId,userId,state))
+    print("关联文献队列任务已完成lid:{},pid:{},uid:{},state:{}".format(phpCid,paperId,userId,state))
 
     if state!=0 :
         # 如果生成失败
@@ -222,6 +220,8 @@ def onRefGenerate(ch, method, properties, body):
     # )
 
     #向php中发消息(包含生成的文献信息)
+    references = data["references"]
+    abstract = data["abstract"]
     response =  requests.post(
         phpConfig['host']+'/addons/ask/detail/notice?user_id={}&paper_id={}&lid={}&state={}'.format(userId,paperId,phpCid,state),
         files=(
