@@ -139,6 +139,8 @@ def onRefGenerate(ch, method, properties, body):
     paperId = data["paperId"]
     userId = data["userId"]
     phpCid = data["lid"]
+    references = data["references"]
+    abstract = data["abstract"]
     print("关联文献已生成lid:{},pid:{},uid:{},state:{}".format(phpCid,paperId,userId,state))
 
     if state!=0 :
@@ -154,7 +156,10 @@ def onRefGenerate(ch, method, properties, body):
         if response.status_code != 200:
             print("php服务出错paperId={} userId={}".format(userId,paperId))
         return
-    relData = data["data"]
+    relData = {}
+    relData["data"] = data["data"]
+    relData["references"] = references
+    relData["abstract"]  = abstract
 
 
     # #向php中发消息(不包含生成的文献信息)
@@ -166,9 +171,8 @@ def onRefGenerate(ch, method, properties, body):
     #向php中发消息(包含生成的文献信息)
     response =  requests.post(
         phpConfig['host']+'/addons/ask/detail/notice?user_id={}&paper_id={}&lid={}&state={}'.format(userId,paperId,phpCid,state),
-        None,
         relData,
-        headers = {'Content-Type': 'application/json', 'Accept':'application/json'},
+        headers = {'Content-Type': 'multipart/form-data', 'Accept':'application/json'},
         timeout = (20,20)
     )
 
