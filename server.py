@@ -138,14 +138,15 @@ def onRefGenerate(ch, method, properties, body):
     # )
 
     #向php中发消息(包含生成的文献信息)
-    references = data["references"]
-    abstract = data["abstract"]
-    edges = data["edges"]
-    categories = data["categories"]
+    subData = data["data"]
+    references = subData["references"]
+    abstract = subData["abstract"]
+    edges = subData["edges"]
+    categories = subData["categories"]
     response =  requests.post(
         phpConfig['host']+'/addons/ask/detail/notice?user_id={}&paper_id={}&lid={}&state={}'.format(userId,paperId,phpCid,state),
         files=(
-            ('data', (None, demjson.encode(data["data"]))),
+            ('data', (None, demjson.encode(subData["data"]))),
             ('references', (None, demjson.encode(references))),
             ('edges', (None, demjson.encode(edges))),
             ('categories', (None, demjson.encode(categories))),
